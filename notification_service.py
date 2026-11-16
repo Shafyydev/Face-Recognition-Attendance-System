@@ -9,7 +9,6 @@ import re
 import sys
 import json
 import socket
-import logging
 import threading
 from datetime import datetime
 from dotenv import load_dotenv
@@ -25,7 +24,6 @@ def get_env_path() -> str:
 # override=True ensures .env always wins over stale OS-level env vars
 load_dotenv(dotenv_path=get_env_path(), override=True)
 
-logger = logging.getLogger("notification_service")
 
 # ---------------------------------------------------------------------------
 # Auto-Discovery: SMS Gate Gateway IP Cache
@@ -322,7 +320,6 @@ def format_attendance_time(dt: datetime = None) -> str:
     """Format time into 12-hour format without leading zero, e.g. '8:47 AM'."""
     if dt is None:
         dt = datetime.now()
-    # Format with %I (01-12), %M (00-59), %p (AM/PM)
     formatted = dt.strftime("%I:%M %p")
     return formatted.lstrip("0")
 
