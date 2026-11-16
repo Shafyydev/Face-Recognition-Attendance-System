@@ -2867,7 +2867,6 @@
         let lastTableKey = '';
         let lastAbsentKey = '';
         let lastDeptKey = '';
-        let lastLateKey = '';
         let lastStatsKey = '';
 
         function tickClock() {
@@ -3107,7 +3106,6 @@
                 return;
             }
 
-            const presentIds = new Set(allRows.map(r => String(r.student_id)));
             const prevIds = new Set(existingIds);
             tbody.innerHTML = rows.map(item => {
                 const isNew = prevIds.size > 0 && !prevIds.has(String(item.student_id));
@@ -3451,7 +3449,6 @@
             const badgeTextEl = document.getElementById('cam-badge-text');
             const badgeIconEl = document.getElementById('cam-badge-icon');
             const avatarIconEl = document.getElementById('cam-banner-icon');
-            const kickerLabelEl = document.getElementById('cam-hud-label');
 
             const isLate = data.status === 'late';
             const isAlready = data.status === 'already' || data.status === 'already_present';
@@ -3504,10 +3501,6 @@
 
             if (avatarIconEl) {
                 avatarIconEl.className = isLate ? 'fas fa-clock' : (isAlready ? 'fas fa-id-badge' : 'fas fa-check');
-            }
-
-            if (kickerLabelEl) {
-                kickerLabelEl.textContent = isLate ? 'LATE ARRIVAL RECORDED' : (isAlready ? 'ATTENDANCE ALREADY RECORDED' : 'BIOMETRIC VERIFICATION SUCCESS');
             }
 
             const videoContainer = banner.closest('.video-container');
@@ -3839,7 +3832,6 @@ checkRecognitionStatus();async function refreshData() {
                 hideDeptTable();
                 lastTableKey = '';
                 lastDeptKey = '';
-                lastLateKey = '';
                 lastStatsKey = '';
                 resetAlreadyPresentTracking();
                 const modal = document.getElementById('already-present-modal');
