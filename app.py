@@ -5,12 +5,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, Response, jsonify, request
 from flask_cors import CORS
-from database.models import get_session, Student, Attendance, ActivityLog, DB_PATH
+from database.models import get_session, Student, Attendance, ActivityLog
 import cv2
 import numpy as np
 from datetime import datetime, timedelta
 from face_utils.attendance_marker import AttendanceMarker
-from face_utils.cascade import load_face_cascade
 import time
 import threading
 import multiprocessing
@@ -28,7 +27,6 @@ app = Flask(__name__, template_folder=template_folder)
 
 CORS(app)
 
-latest_attendance = []
 
 # The date currently selected on the dashboard date-picker.
 # None means "use today". Updated via /api/set_attendance_date.
@@ -139,15 +137,6 @@ def open_camera():
             cap.release()
     return None
 
-
-def recognition_loop():
-    """
-    Compatibility placeholder.
-
-    Face recognition is now handled by the isolated
-    recognition_process_worker in face_utils.recognition_worker.
-    """
-    return
 
 
 def start_recognition_process():
@@ -707,8 +696,6 @@ def get_stats():
 
 @app.route('/api/clear_today', methods=['POST'])
 def clear_today():
-    global latest_attendance
-
     # Read the date currently selected in the dashboard.
     data = request.get_json(silent=True) or {}
     date_str = data.get('date')
@@ -774,12 +761,10 @@ def clear_today():
     except Exception as reset_exc:
         print(f"Error resetting absentee scheduler: {reset_exc}", flush=True)
 
-    latest_attendance.clear()
-
     log_activity(
         'attendance_cleared',
         'Attendance records cleared',
-        f"{deleted} attendance record(s) were cleared"
+        f'Cleared {deleted} records for {target_date}'
     )
 
     print(f"Cleared {deleted} records for {target_date} and reset memory")
@@ -1125,7 +1110,8 @@ def generate_registration_frames():
     """
     ensure_camera_thread()
 
-    cascade = load_face_cascade()
+    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    cascade = cv2.CascadeClassifier(cascade_path)
     last_box = None
     last_detection_time = 0.0
 
