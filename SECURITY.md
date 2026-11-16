@@ -38,3 +38,4 @@ For production or campus deployment:
 - **File System Permissions**: Restrict read/write permissions on `attendance.db` and `data/` to the application operator account.
 - **Physical Security**: Position webcam hardware to capture only intentional student check-ins and prevent unauthorized angles.
 - **Database Backups**: Use the provided `python tools/backup_db.py` to create periodic snapshots and store backups on encrypted, access-controlled storage.
+

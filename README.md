@@ -159,15 +159,12 @@ attendance_system/
 ├── check_db.py                 # CLI inspection tool for development database status
 ├── check_packaged_db.py        # CLI inspection tool for packaged executable database
 ├── tools/
-│   ├── backup_db.py            # Point-in-time online SQLite backup & pruning script
-│   ├── register_students.py    # Interactive student registration CLI tool
-│   └── run_system.py           # Quick start runner tool
+│   └── backup_db.py                    # SQLite backup helper
 ├── database/
 │   ├── __init__.py
 │   └── models.py               # SQLAlchemy models (Student, Attendance, ActivityLog)
 ├── face_utils/
 │   ├── attendance_marker.py    # Multi-frame streak validation and attendance logging
-│   ├── cascade.py              # Haar cascade face detection loader
 │   ├── decision_engine.py      # Face distance and identity margin matching engine
 │   ├── embedding_encoder.py    # 128D face embedding generator and cache
 │   ├── face_embedding_store.py # Persistent per-student JSON embedding storage

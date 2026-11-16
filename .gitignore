@@ -59,3 +59,23 @@ Thumbs.db
 .coverage
 htmlcov/
 *.cover
+
+# Build artifacts
+build/
+build_test/
+dist/
+dist_test/
+
+# Runtime/safety
+*.db
+*.db-*
+*.log
+.env
+attendance.db*
+server_startup_error.log
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+
+.kilo/

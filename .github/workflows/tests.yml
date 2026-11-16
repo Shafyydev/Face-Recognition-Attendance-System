@@ -29,3 +29,4 @@ jobs:
       - name: Run unittest suite
         run: |
           python -m unittest discover tests
+
