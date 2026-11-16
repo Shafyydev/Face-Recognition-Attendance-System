@@ -1,6 +1,19 @@
 import sys
 import os
 import json
+
+# Ensure UTF-8 output streams on Windows to prevent charmap/UnicodeEncodeError
+if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if sys.stderr is not None and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, Response, jsonify, request
@@ -880,7 +893,7 @@ def manual_attendance():
                 return jsonify({
                     'error': f'{student.name} is already marked as "{existing.status}" on {date_str}'
                 }), 409
-            # Override existing status (e.g. late → on_time or on_time → late)
+            # Override existing status (e.g. late -> on_time or on_time -> late)
             old_status = existing.status
             existing.status = status
             if status == 'late':
@@ -925,10 +938,10 @@ def manual_attendance():
             log_activity(
                 'attendance_manual_override',
                 'Manual attendance override',
-                f"{student.name} ({student_id}) status changed: {old_status} → {status} on {date_str}",
+                f"{student.name} ({student_id}) status changed: {old_status} -> {status} on {date_str}",
                 student_id=student_id,
             )
-            print(f"[MANUAL] {student.name} ({student_id}) updated {old_status} → {status} on {date_str}", flush=True)
+            print(f"[MANUAL] {student.name} ({student_id}) updated {old_status} -> {status} on {date_str}", flush=True)
             return jsonify({'success': True, 'name': student.name, 'status': status, 'date': date_str, 'override': True})
 
         now = datetime.combine(target_date, datetime.now().time())
@@ -1544,17 +1557,17 @@ def update_student(student_id):
         # Build a human-readable summary of what actually changed.
         changes = []
         if new_student_id != old_student_id:
-            changes.append(f"ID: {old_student_id} \u2192 {new_student_id}")
+            changes.append(f"ID: {old_student_id} -> {new_student_id}")
         if name != old_name:
-            changes.append(f"Name: {old_name} \u2192 {name}")
+            changes.append(f"Name: {old_name} -> {name}")
         if (department or '') != old_department:
-            changes.append(f"Department: {old_department or 'N/A'} \u2192 {department or 'N/A'}")
+            changes.append(f"Department: {old_department or 'N/A'} -> {department or 'N/A'}")
         if (year or '') != old_year:
-            changes.append(f"Year: {old_year or 'N/A'} \u2192 {year or 'N/A'}")
+            changes.append(f"Year: {old_year or 'N/A'} -> {year or 'N/A'}")
         if (student.student_mobile or '') != old_student_mobile:
-            changes.append(f"Student Mobile: {old_student_mobile or 'N/A'} \u2192 {student.student_mobile or 'N/A'}")
+            changes.append(f"Student Mobile: {old_student_mobile or 'N/A'} -> {student.student_mobile or 'N/A'}")
         if (student.parent_mobile or '') != old_parent_mobile:
-            changes.append(f"Parent Mobile: {old_parent_mobile or 'N/A'} \u2192 {student.parent_mobile or 'N/A'}")
+            changes.append(f"Parent Mobile: {old_parent_mobile or 'N/A'} -> {student.parent_mobile or 'N/A'}")
 
         detail = ' | '.join(changes) if changes else 'No changes'
 
@@ -1923,9 +1936,9 @@ def register_page():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("ÃƒÂ°Ã…Â¸Ã…Â½Ã¢â‚¬Å“ ATTENDANCE SYSTEM")
+    print("ATTENDANCE SYSTEM")
     print("=" * 60)
-    print("\nÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â€šÂ¬ Starting server at http://localhost:5000")
+    print("\nStarting server at http://localhost:5000")
     print("Press CTRL+C to stop\n")
     ensure_camera_thread()
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)

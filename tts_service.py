@@ -71,7 +71,7 @@ class TTSService:
             print("TTS service: initialized", flush=True)
 
         except Exception as exc:
-            print(f"TTS service: init failed — {exc}", flush=True)
+            print(f"TTS service: init failed - {exc}", flush=True)
             return
 
         while self._running:
@@ -87,7 +87,7 @@ class TTSService:
                 self._engine.say(text)
                 self._engine.runAndWait()
             except Exception as exc:
-                print(f"TTS service: speak error — {exc}", flush=True)
+                print(f"TTS service: speak error - {exc}", flush=True)
 
         # Clean up the engine on shutdown
         try:

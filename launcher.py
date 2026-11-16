@@ -9,6 +9,18 @@ import threading
 import time
 import multiprocessing
 
+# Ensure UTF-8 output streams on Windows to prevent charmap/UnicodeEncodeError
+if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if sys.stderr is not None and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 if getattr(sys, 'frozen', False):
     sys.path.insert(0, sys._MEIPASS)
     app_dir = os.path.dirname(sys.executable)

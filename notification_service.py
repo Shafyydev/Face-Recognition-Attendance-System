@@ -236,7 +236,7 @@ def enqueue_sms_retry(to: str, message: str, recipient_type: str):
         "recipient_type": recipient_type,
         "attempts": 0,
     })
-    print(f"[SMS RETRY] Queued SMS for {recipient_type} ({to}) — will retry in {_RETRY_INTERVAL}s", flush=True)
+    print(f"[SMS RETRY] Queued SMS for {recipient_type} ({to}) - will retry in {_RETRY_INTERVAL}s", flush=True)
 
 
 
@@ -546,7 +546,7 @@ class AndroidSMSGatewayProvider(SMSProvider):
             # On first failure: try auto-discovering the gateway IP
             if attempt == 1 and not discovered_this_send:
                 discovered_this_send = True
-                print("[SMS GATEWAY] Configured IP unreachable — attempting auto-discovery...", flush=True)
+                print("[SMS GATEWAY] Configured IP unreachable - attempting auto-discovery...", flush=True)
                 new_ip = discover_gateway(api_key=self.api_key)
                 if new_ip:
                     print(f"[SMS GATEWAY] Found gateway at {new_ip}, retrying send...", flush=True)

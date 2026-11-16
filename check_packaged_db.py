@@ -35,14 +35,14 @@ def inspect_packaged_database():
             total_students = conn.execute(text("SELECT COUNT(*) FROM students")).scalar() or 0
             active_students = conn.execute(text("SELECT COUNT(*) FROM students WHERE is_active = 1")).scalar() or 0
             print(f"\nStudents:")
-            print(f"  • Total registered : {total_students}")
-            print(f"  • Active accounts  : {active_students}")
-            print(f"  • Inactive accounts: {total_students - active_students}")
+            print(f"  * Total registered : {total_students}")
+            print(f"  * Active accounts  : {active_students}")
+            print(f"  * Inactive accounts: {total_students - active_students}")
 
             # 2. Attendance summary
             total_attendance = conn.execute(text("SELECT COUNT(*) FROM attendance")).scalar() or 0
             print(f"\nAttendance Records:")
-            print(f"  • Total entries    : {total_attendance}")
+            print(f"  * Total entries    : {total_attendance}")
 
             status_counts = conn.execute(
                 text("SELECT status, COUNT(*) FROM attendance GROUP BY status ORDER BY COUNT(*) DESC")
@@ -54,13 +54,13 @@ def inspect_packaged_database():
             # 3. Activity Log summary
             total_activities = conn.execute(text("SELECT COUNT(*) FROM activity_log")).scalar() or 0
             print(f"\nActivity Logs:")
-            print(f"  • Total logged events: {total_activities}")
+            print(f"  * Total logged events: {total_activities}")
 
             recent_activities = conn.execute(
                 text("SELECT event_type, COUNT(*) FROM activity_log GROUP BY event_type ORDER BY COUNT(*) DESC LIMIT 5")
             ).fetchall()
             if recent_activities:
-                print("  • Top event types:")
+                print("  * Top event types:")
                 for ev_type, count in recent_activities:
                     print(f"    - {ev_type:24}: {count}")
 

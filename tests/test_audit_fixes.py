@@ -183,6 +183,36 @@ class TestAuditFixes(unittest.TestCase):
             msg = notification_service.format_student_message("Alice", "TEST_ALICE", "IV", "AI&DS", datetime(2026, 11, 6, 8, 45))
             self.assertIn(notification_service.DEFAULT_COLLEGE_NAME, msg)
 
+    def test_manual_status_change_no_encoding_error(self):
+        """Test that overriding student status (e.g. absent -> on_time) does not raise UnicodeEncodeError."""
+        client = app.app.test_client()
+        date_str = "2026-11-12"  # Thursday
+        # First mark absent
+        res1 = client.post('/api/attendance/manual', json={
+            'student_id': self.test_sid,
+            'date': date_str,
+            'status': 'absent'
+        })
+        self.assertEqual(res1.status_code, 200)
+
+        # Now override to on_time (triggers status changed: absent -> on_time)
+        res2 = client.post('/api/attendance/manual', json={
+            'student_id': self.test_sid,
+            'date': date_str,
+            'status': 'on_time'
+        })
+        self.assertEqual(res2.status_code, 200)
+        data = res2.get_json()
+        self.assertTrue(data.get('success'))
+
+        # Verify activity log entry
+        log_entry = self.session.query(ActivityLog).filter(
+            ActivityLog.student_id == self.test_sid,
+            ActivityLog.event_type == 'attendance_manual_override'
+        ).order_by(ActivityLog.id.desc()).first()
+        self.assertIsNotNone(log_entry)
+        self.assertIn("absent -> on_time", log_entry.detail)
+
 
 if __name__ == '__main__':
     unittest.main()
