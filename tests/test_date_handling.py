@@ -1,10 +1,10 @@
+from app import app
 import unittest
 from unittest.mock import patch, MagicMock
 from datetime import datetime, date, timedelta
 import numpy as np
 from database.models import init_db, get_session, Student, Attendance, ActivityLog
 from face_utils.attendance_marker import AttendanceMarker
-from app import app, _selected_attendance_date_lock
 
 class TestAttendanceDateHandling(unittest.TestCase):
     @classmethod
@@ -196,8 +196,10 @@ class TestAttendanceDateHandling(unittest.TestCase):
         # Case A: Current time is past absent cutoff -> camera_absent, record saved in DB
         self.marker.set_attendance_date(target_date_str)
         self.marker.ABSENT_AFTER = dt_time(0, 0, 0) # Force past absent cutoff
-        result = self.marker.mark_attendance("TEST_DATE_01", "Date Test Student")
+        with patch("notification_service.send_absent_alert") as mock_absent_alert:
+            result = self.marker.mark_attendance("TEST_DATE_01", "Date Test Student")
         self.assertEqual(result, "camera_absent")
+        mock_absent_alert.assert_called_once()
 
         rec_absent = self.session.query(Attendance).filter_by(student_id="TEST_DATE_01").first()
         self.assertIsNotNone(rec_absent)
@@ -213,8 +215,10 @@ class TestAttendanceDateHandling(unittest.TestCase):
         self.marker.set_attendance_date(target_date_str)
         self.marker.LATE_AFTER = dt_time(0, 0, 0)
         self.marker.ABSENT_AFTER = dt_time(23, 59, 59)
-        result = self.marker.mark_attendance("TEST_DATE_01", "Date Test Student")
+        with patch("notification_service.send_late_alert") as mock_late_alert:
+            result = self.marker.mark_attendance("TEST_DATE_01", "Date Test Student")
         self.assertEqual(result, "marked")
+        mock_late_alert.assert_called_once()
 
         rec = self.session.query(Attendance).filter_by(student_id="TEST_DATE_01").first()
         self.assertIsNotNone(rec)
