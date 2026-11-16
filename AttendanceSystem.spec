@@ -52,13 +52,13 @@ a = Analysis(
 
         # OpenCV
         'cv2',
-        'cv2.face',
 
         # NumPy
         'numpy',
 
         # face-recognition / dlib
         'face_recognition',
+        'face_recognition_models',
         'dlib',
 
         # Application
@@ -69,11 +69,9 @@ a = Analysis(
         # Current face-recognition architecture
         'face_utils',
         'face_utils.attendance_marker',
-        'face_utils.cascade',
         'face_utils.decision_engine',
         'face_utils.embedding_encoder',
         'face_utils.face_embedding_store',
-        'face_utils.face_encoder',
         'face_utils.recognition_worker',
 
         # Desktop WebView
@@ -87,6 +85,12 @@ a = Analysis(
         'pyttsx3.drivers.sapi5',
         'requests',
         'dotenv',
+
+        # Multiprocessing support (required for frozen exe)
+        'multiprocessing',
+
+        # Concurrent futures (used by SMS gateway auto-discovery)
+        'concurrent.futures',
     ],
     hookspath=[],
     hooksconfig={},
