@@ -23,6 +23,8 @@ a = Analysis(
         # Required application packages
         ('database', 'database'),
         ('face_utils', 'face_utils'),
+        ('middleware', 'middleware'),
+        ('gateway', 'gateway'),
 
         # Required Haar cascade
         ('data/models/haarcascade_frontalface_default.xml', 'data/models'),
@@ -73,6 +75,15 @@ a = Analysis(
         'face_utils.embedding_encoder',
         'face_utils.face_embedding_store',
         'face_utils.recognition_worker',
+
+        # Middleware & Gateway
+        'middleware',
+        'middleware.rate_limiter',
+        'middleware.cache',
+        'middleware.circuit_breaker',
+        'middleware.service_discovery',
+        'gateway',
+        'gateway.api_gateway',
 
         # Desktop WebView
         'webview',
