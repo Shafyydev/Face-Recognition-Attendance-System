@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     liblapack-dev \
     libx11-dev \
     libgtk-3-dev \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,18 +31,19 @@ WORKDIR /build
 
 # Copy requirements first for better layer caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install "setuptools<72" wheel && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime - Slim final image
 # ---------------------------------------------------------------------------
 FROM python:3.12-slim AS runtime
 
-# Install only runtime system libraries
+# Install only runtime system libraries (libgl1 replaces legacy libgl1-mesa-glx in Debian 12)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libopenblas0 \
     liblapack3 \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \

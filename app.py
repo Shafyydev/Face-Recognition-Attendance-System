@@ -21,7 +21,6 @@ from flask_cors import CORS
 from database.models import get_session, Student, Attendance, ActivityLog
 from middleware.rate_limiter import RateLimiter, rate_limit
 from middleware.cache import ResponseCache, cached, invalidate_cache
-from middleware.circuit_breaker import sms_circuit_breaker
 from gateway.api_gateway import APIGateway
 import cv2
 import numpy as np
