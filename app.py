@@ -24,7 +24,7 @@ from middleware.cache import ResponseCache, cached, invalidate_cache
 from gateway.api_gateway import APIGateway
 import cv2
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from face_utils.attendance_marker import AttendanceMarker
 import time
 import threading
@@ -56,20 +56,35 @@ api_gateway = APIGateway(app)
 _selected_attendance_date = None
 _selected_attendance_date_lock = threading.Lock()
 
-def log_activity(event_type, title, detail="", student_id=None):
+def log_activity(event_type, title, detail="", student_id=None, target_date=None):
     """Persist one activity event in the daily activity log."""
     session = get_session()
 
     try:
-        with _selected_attendance_date_lock:
-            sel_date_str = _selected_attendance_date
+        effective_date = None
+        if target_date is not None:
+            if isinstance(target_date, str):
+                try:
+                    effective_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+                except ValueError:
+                    effective_date = None
+            elif isinstance(target_date, datetime):
+                effective_date = target_date.date()
+            elif isinstance(target_date, date):
+                effective_date = target_date
 
-        if sel_date_str:
-            try:
-                target_date = datetime.strptime(sel_date_str, '%Y-%m-%d').date()
-                created_at = datetime.combine(target_date, datetime.now().time())
-            except ValueError:
-                created_at = datetime.now()
+        if effective_date is None:
+            with _selected_attendance_date_lock:
+                sel_date_str = _selected_attendance_date
+
+            if sel_date_str:
+                try:
+                    effective_date = datetime.strptime(sel_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    effective_date = None
+
+        if effective_date is not None:
+            created_at = datetime.combine(effective_date, datetime.now().time())
         else:
             created_at = datetime.now()
 
@@ -790,7 +805,8 @@ def clear_today():
     log_activity(
         'attendance_cleared',
         'Attendance records cleared',
-        f'Cleared {deleted} records for {target_date}'
+        f'Cleared {deleted} records for {target_date}',
+        target_date=target_date
     )
 
     print(f"Cleared {deleted} records for {target_date} and reset memory")
@@ -871,6 +887,7 @@ def manual_attendance():
                     'Manual attendance override',
                     f"{student.name} ({student_id}) status changed to absent on {date_str}",
                     student_id=student_id,
+                    target_date=target_date
                 )
                 print(f"[MANUAL] {student.name} ({student_id}) updated to absent on {date_str} (was {old_status})", flush=True)
                 return jsonify({'success': True, 'name': student.name, 'status': 'absent', 'date': date_str, 'override': True})
@@ -898,6 +915,7 @@ def manual_attendance():
                     'Manual attendance marked absent',
                     f"{student.name} ({student_id}) marked absent on {date_str}",
                     student_id=student_id,
+                    target_date=target_date
                 )
                 print(f"[MANUAL] {student.name} ({student_id}) marked absent on {date_str}", flush=True)
                 return jsonify({'success': True, 'name': student.name, 'status': 'absent', 'date': date_str, 'override': True})
@@ -955,6 +973,7 @@ def manual_attendance():
                 'Manual attendance override',
                 f"{student.name} ({student_id}) status changed: {old_status} -> {status} on {date_str}",
                 student_id=student_id,
+                target_date=target_date
             )
             print(f"[MANUAL] {student.name} ({student_id}) updated {old_status} -> {status} on {date_str}", flush=True)
             return jsonify({'success': True, 'name': student.name, 'status': status, 'date': date_str, 'override': True})
@@ -1003,6 +1022,7 @@ def manual_attendance():
             'Manual attendance marked',
             f"{student.name} ({student_id}) manually marked as {status} on {date_str}",
             student_id=student_id,
+            target_date=target_date
         )
 
         print(f"[MANUAL] {student.name} ({student_id}) marked {status} on {date_str}", flush=True)
