@@ -1,0 +1,23 @@
+# =============================================================================
+# Face Recognition Attendance System - Kubernetes ConfigMap
+# =============================================================================
+# Non-sensitive configuration values injected as environment variables.
+# For sensitive values (API keys, passwords), use a Kubernetes Secret instead.
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: attendance-config
+  namespace: default
+  labels:
+    app: attendance-system
+data:
+  FLASK_ENV: "production"
+  ATTENDANCE_DB_PATH: "/app/data/attendance.db"
+  COLLEGE_NAME: "St.Joseph's College of Arts & Science (Autonomous) - Cuddalore"
+  SMS_ENABLED: "true"
+  SMS_PROVIDER: "mock"
+  RATE_LIMIT_ENABLED: "true"
+  CACHE_ENABLED: "true"
+  CACHE_DEFAULT_TTL: "10"

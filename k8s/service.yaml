@@ -1,0 +1,26 @@
+# =============================================================================
+# Face Recognition Attendance System - Kubernetes Service
+# =============================================================================
+# Exposes the Deployment as a ClusterIP service (default) or LoadBalancer.
+#
+# Access within cluster: http://attendance-service:5000
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: attendance-service
+  namespace: default
+  labels:
+    app: attendance-system
+spec:
+  type: ClusterIP
+  # Change to LoadBalancer for external access:
+  # type: LoadBalancer
+  selector:
+    app: attendance-system
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+      protocol: TCP

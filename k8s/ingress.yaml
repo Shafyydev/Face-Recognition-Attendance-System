@@ -1,0 +1,49 @@
+# =============================================================================
+# Face Recognition Attendance System - Kubernetes Ingress
+# =============================================================================
+# Routes external HTTP/HTTPS traffic to the attendance-service.
+#
+# Prerequisites:
+#   - An Ingress Controller (e.g., nginx-ingress, traefik) installed in the cluster
+#   - DNS record pointing to the Ingress Controller's external IP
+#   - (Optional) cert-manager for automatic TLS certificates
+#
+# Apply:  kubectl apply -f k8s/ingress.yaml
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: attendance-ingress
+  namespace: default
+  labels:
+    app: attendance-system
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    # Uncomment for TLS with cert-manager:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: attendance.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: attendance-service
+                port:
+                  number: 80
+  # Uncomment for TLS:
+  # tls:
+  #   - hosts:
+  #       - attendance.example.com
+  #     secretName: attendance-tls

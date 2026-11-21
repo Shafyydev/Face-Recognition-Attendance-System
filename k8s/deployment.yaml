@@ -1,0 +1,77 @@
+# =============================================================================
+# Face Recognition Attendance System - Kubernetes Deployment
+# =============================================================================
+# Deploys the Flask application as a Kubernetes Deployment with:
+#   - Rolling update strategy
+#   - Resource limits and requests
+#   - Liveness and readiness probes
+#   - Environment configuration from ConfigMap
+#
+# Apply:  kubectl apply -f k8s/
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attendance-system
+  namespace: default
+  labels:
+    app: attendance-system
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: attendance-system
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: attendance-system
+        version: "1.0.0"
+    spec:
+      containers:
+        - name: attendance-app
+          image: attendance-system:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: http
+          envFrom:
+            - configMapRef:
+                name: attendance-config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: app-data
+              mountPath: /app/data
+      volumes:
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: attendance-data-pvc

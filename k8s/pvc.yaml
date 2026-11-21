@@ -1,0 +1,22 @@
+# =============================================================================
+# Face Recognition Attendance System - Persistent Volume Claim
+# =============================================================================
+# Provides persistent storage for the SQLite database, face embeddings,
+# and known face images across pod restarts and rescheduling.
+# =============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: attendance-data-pvc
+  namespace: default
+  labels:
+    app: attendance-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # Uncomment to use a specific StorageClass:
+  # storageClassName: standard
