@@ -72,6 +72,7 @@ def start_server():
 
 def main():
     import webview
+    import urllib.request
 
     server_thread = threading.Thread(
         target=start_server,
@@ -79,7 +80,21 @@ def main():
     )
     server_thread.start()
 
-    time.sleep(2)
+    # Wait until Flask server is actually responding before opening the window
+    print("Waiting for Attendance System server to initialize...", flush=True)
+    server_ready = False
+    for i in range(60):
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:5000/api/status', timeout=0.5) as resp:
+                if resp.status == 200:
+                    server_ready = True
+                    print(f"Attendance System ready in {(i + 1) * 0.25:.1f}s", flush=True)
+                    break
+        except Exception:
+            time.sleep(0.25)
+
+    if not server_ready:
+        print("[WARNING] Server did not respond within 15s, attempting to open window anyway...", flush=True)
 
     class DesktopAPI:
         def save_file(self, filename, content):
@@ -128,7 +143,19 @@ def main():
         resizable=True
     )
 
-    window.events.loaded += lambda: window.run_js("document.documentElement.style.zoom = '90%';")
+    def on_loaded():
+        try:
+            body_len = window.evaluate_js('document.body ? document.body.innerHTML.length : 0')
+            if not body_len or body_len < 100:
+                print("[LAUNCHER] Page content not loaded, refreshing...", flush=True)
+                time.sleep(0.5)
+                window.load_url('http://127.0.0.1:5000')
+            else:
+                window.evaluate_js("document.documentElement.style.zoom = '90%';")
+        except Exception as e:
+            print(f"[LAUNCHER] on_loaded notice: {e}", flush=True)
+
+    window.events.loaded += on_loaded
 
     def shutdown():
         try:

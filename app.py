@@ -1963,6 +1963,11 @@ if __name__ == '__main__':
     service_registry.register("flask_app", "http://127.0.0.1:5000", {"type": "web"})
     service_registry.register("database", "sqlite:///attendance.db", {"type": "sqlite"})
     ensure_camera_thread()
+
+    # Automatically open browser if user ran python app.py directly from terminal
+    import webbrowser
+    threading.Timer(1.5, lambda: webbrowser.open('http://127.0.0.1:5000')).start()
+
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
 
 
