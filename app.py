@@ -1035,6 +1035,7 @@ def set_attendance_date():
 
     data = request.get_json(silent=True) or {}
     date_str = (data.get('date') or '').strip()
+    force = bool(data.get('force', False))
 
     # Validate format
     import re as _re
@@ -1073,11 +1074,39 @@ def set_attendance_date():
         if is_past_cutoff:
             try:
                 from notification_service import process_absentee_check
-                process_absentee_check(force=False, target_date=target_dt)
+                process_absentee_check(force=force, target_date=target_dt)
             except Exception as exc:
                 print(f"[RECONCILE] Error during attendance reconciliation for {target_dt}: {exc}", flush=True)
 
     return jsonify({'success': True, 'date': date_str or 'today'})
+
+
+@app.route('/api/absentee/trigger', methods=['POST'])
+@rate_limit("10/minute")
+def trigger_absentee():
+    """Manually trigger absentee check for the selected or current date."""
+    data = request.get_json(silent=True) or {}
+    date_str = (data.get('date') or '').strip()
+    force = bool(data.get('force', True))
+
+    if date_str:
+        try:
+            target_dt = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format, use YYYY-MM-DD'}), 400
+    else:
+        target_dt = get_effective_attendance_date()
+
+    if target_dt.weekday() == 6:
+        return jsonify({'success': False, 'error': 'Cannot run absentee check on Sunday'}), 400
+
+    try:
+        from notification_service import process_absentee_check
+        process_absentee_check(force=force, target_date=target_dt)
+        invalidate_cache()
+        return jsonify({'success': True, 'date': str(target_dt), 'message': f'Absentee check completed for {target_dt}'})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 @app.route('/api/attendance/export')

@@ -213,6 +213,23 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIsNotNone(log_entry)
         self.assertIn("absent -> on_time", log_entry.detail)
 
+    def test_absentee_trigger_api(self):
+        """Test POST /api/absentee/trigger explicitly reconciles absentees with force=True."""
+        from app import app
+        client = app.test_client()
+
+        # Sunday should fail with 400
+        res_sun = client.post('/api/absentee/trigger', json={'date': '2026-10-18'}) # Sunday
+        self.assertEqual(res_sun.status_code, 400)
+        self.assertFalse(res_sun.get_json().get('success'))
+
+        # Weekday should succeed
+        with patch('notification_service.process_absentee_check') as mock_check:
+            res = client.post('/api/absentee/trigger', json={'date': '2026-10-15', 'force': True})
+            self.assertEqual(res.status_code, 200)
+            self.assertTrue(res.get_json().get('success'))
+            mock_check.assert_called_once_with(force=True, target_date=date(2026, 10, 15))
+
 
 if __name__ == '__main__':
     unittest.main()
