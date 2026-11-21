@@ -19,6 +19,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, render_template, Response, jsonify, request
 from flask_cors import CORS
 from database.models import get_session, Student, Attendance, ActivityLog
+from middleware.rate_limiter import RateLimiter, rate_limit
+from middleware.cache import ResponseCache, cached, invalidate_cache
+from middleware.circuit_breaker import sms_circuit_breaker
+from gateway.api_gateway import APIGateway
 import cv2
 import numpy as np
 from datetime import datetime, timedelta
@@ -39,6 +43,13 @@ app = Flask(__name__, template_folder=template_folder)
 
 
 CORS(app)
+
+# ---------------------------------------------------------------------------
+# Middleware: Rate Limiter, Response Cache, API Gateway
+# ---------------------------------------------------------------------------
+rate_limiter = RateLimiter(app)
+response_cache = ResponseCache(app, default_ttl=10)
+api_gateway = APIGateway(app)
 
 
 # The date currently selected on the dashboard date-picker.
@@ -644,6 +655,7 @@ def get_activity():
         session.close()
 
 @app.route('/api/attendance')
+@cached(ttl=5)
 def get_attendance():
     session = get_session()
     try:
@@ -681,6 +693,7 @@ def get_attendance():
         session.close()
 
 @app.route('/api/stats')
+@cached(ttl=5)
 def get_stats():
     session = get_session()
     try:
@@ -708,6 +721,7 @@ def get_stats():
         session.close()
 
 @app.route('/api/clear_today', methods=['POST'])
+@rate_limit("10/minute")
 def clear_today():
     # Read the date currently selected in the dashboard.
     data = request.get_json(silent=True) or {}
@@ -781,9 +795,11 @@ def clear_today():
     )
 
     print(f"Cleared {deleted} records for {target_date} and reset memory")
+    invalidate_cache()  # Clear cached stats/attendance after clearing records
     return jsonify({'message': f'Cleared {deleted} records'})
 
 @app.route('/api/attendance/manual', methods=['POST'])
+@rate_limit("30/minute")
 def manual_attendance():
     """Manually mark a student as present/late/absent for a given date."""
     data = request.get_json(silent=True) or {}
@@ -991,6 +1007,7 @@ def manual_attendance():
         )
 
         print(f"[MANUAL] {student.name} ({student_id}) marked {status} on {date_str}", flush=True)
+        invalidate_cache()  # Clear cached stats/attendance after manual change
         return jsonify({'success': True, 'name': student.name, 'status': status, 'date': date_str})
 
     except Exception as exc:
@@ -1702,6 +1719,7 @@ def update_student(student_id):
         session.close()
 
 @app.route('/api/register', methods=['POST'])
+@rate_limit("5/minute")
 def register_student():
     """Register a new student using five camera samples and face embeddings."""
     import base64
@@ -1940,6 +1958,11 @@ if __name__ == '__main__':
     print("=" * 60)
     print("\nStarting server at http://localhost:5000")
     print("Press CTRL+C to stop\n")
+
+    # Initialize service discovery registry
+    from middleware.service_discovery import service_registry
+    service_registry.register("flask_app", "http://127.0.0.1:5000", {"type": "web"})
+    service_registry.register("database", "sqlite:///attendance.db", {"type": "sqlite"})
     ensure_camera_thread()
     app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
 

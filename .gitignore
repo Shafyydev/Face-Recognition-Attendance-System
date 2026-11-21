@@ -79,3 +79,10 @@ server_startup_error.log
 Thumbs.db
 
 .kilo/
+
+# Docker runtime artifacts (config files are tracked)
+*.tar
+docker-compose.override.yml
+
+# SSL certificates (never commit)
+nginx/ssl/
