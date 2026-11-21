@@ -49,15 +49,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install CMake (required for dlib build)
-        run: |
-          choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
-        shell: cmd
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install cmake
+          pip install https://github.com/z-mahmud22/Dlib_Windows_Python3.x/raw/main/dlib-19.24.99-cp312-cp312-win_amd64.whl
           pip install -r requirements.txt
 
       - name: Run unittest suite
@@ -108,15 +103,10 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Install CMake (required for dlib build)
-        run: |
-          choco install cmake --installargs '"ADD_CMAKE_TO_PATH=System"' -y
-        shell: cmd
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install cmake
+          pip install https://github.com/z-mahmud22/Dlib_Windows_Python3.x/raw/main/dlib-19.24.99-cp312-cp312-win_amd64.whl
           pip install -r requirements.txt
           pip install pyinstaller
 
