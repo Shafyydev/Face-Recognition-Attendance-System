@@ -1,0 +1,68 @@
+# =============================================================================
+# Docker Ignore - Face Recognition Attendance System
+# =============================================================================
+# Excludes files not needed inside the Docker image.
+
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.pyo
+*.egg-info
+.eggs
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Docker files (don't copy Docker configs into the image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Kubernetes configs
+k8s/
+
+# Nginx configs (mounted as volumes)
+nginx/
+
+# Documentation and misc
+*.md
+LICENSE
+*.png
+*.gif
+
+# Installer artifacts
+installer/
+
+# Test files (not needed in production image)
+tests/
+
+# Sensitive files
+.env
+*.log
+
+# Dev tools
+tools/
+.kilo/
