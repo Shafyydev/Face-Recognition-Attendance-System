@@ -2540,6 +2540,25 @@
         </div>
     </div>
 
+    <style>
+        #admin-auth-pass::-ms-reveal, #admin-auth-pass::-ms-clear { display: none !important; }
+    </style>
+    <div class="modal-backdrop" id="admin-auth-modal" style="z-index:9999;">
+        <div class="modal">
+            <h2>Admin Authentication</h2>
+            <p>Enter administrator credentials to override attendance.</p>
+            <input id="admin-auth-user" type="text" placeholder="Admin ID" style="width:100%;margin-bottom:8px;padding:8px;border-radius:6px;border:1px solid var(--line,#333);background:#1a1f33;color:#e6e9f2;">
+            <div style="position:relative;margin-bottom:14px;">
+                <input id="admin-auth-pass" type="password" placeholder="Password" style="width:100%;padding:8px 36px 8px 8px;border-radius:6px;border:1px solid var(--line,#333);background:#1a1f33;color:#e6e9f2;">
+                <button type="button" onclick="toggleAdminPass()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#fff;cursor:pointer;font-size:16px;">&#128065;</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" type="button" onclick="adminAuthOk()">Verify</button>
+                <button class="btn" type="button" onclick="adminAuthCancel()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- STUDENT MANAGEMENT -->
 <div class="edit-student-backdrop" id="edit-student-modal">
     <div class="edit-student-modal">
@@ -3161,6 +3180,42 @@
             }).join('');
         }
 
+        let _adminAuthResolve = null;
+        function toggleAdminPass() {
+            const passIn = document.getElementById('admin-auth-pass');
+            passIn.type = passIn.type === 'password' ? 'text' : 'password';
+        }
+        function adminAuth() {
+            return new Promise((resolve) => {
+                _adminAuthResolve = resolve;
+                const backdrop = document.getElementById('admin-auth-modal');
+                const userIn = document.getElementById('admin-auth-user');
+                const passIn = document.getElementById('admin-auth-pass');
+                userIn.value = '';
+                passIn.value = '';
+                passIn.type = 'password';
+                backdrop.classList.add('show');
+                userIn.focus();
+                const onKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); adminAuthOk(); } };
+                userIn.addEventListener('keydown', onKey);
+                passIn.addEventListener('keydown', onKey);
+            });
+        }
+        function adminAuthOk() {
+            const userIn = document.getElementById('admin-auth-user');
+            const passIn = document.getElementById('admin-auth-pass');
+            const backdrop = document.getElementById('admin-auth-modal');
+            const u = userIn.value.trim();
+            const p = passIn.value;
+            backdrop.classList.remove('show');
+            if (_adminAuthResolve) { _adminAuthResolve({ username: u, password: p, cancelled: false }); _adminAuthResolve = null; }
+        }
+        function adminAuthCancel() {
+            const backdrop = document.getElementById('admin-auth-modal');
+            backdrop.classList.remove('show');
+            if (_adminAuthResolve) { _adminAuthResolve({ cancelled: true }); _adminAuthResolve = null; }
+        }
+
         async function manualMark(studentId, newStatus, selectEl) {
             const date = dateFilter.value || new Date().toLocaleDateString('en-CA');
             const selects = document.querySelectorAll(`tr[data-id="${studentId}"] .mark-dropdown`);
@@ -3202,16 +3257,13 @@
             // Flag as pending so background table refresh does not alter or conflict
             selects.forEach(s => { s.dataset.pending = 'true'; });
 
-            const adminUsername = prompt('Admin ID:');
-            if (adminUsername === null) {
+            const auth = await adminAuth();
+            if (auth.cancelled) {
                 revert();
                 return;
             }
-            const adminPassword = prompt('Admin Password:');
-            if (adminPassword === null) {
-                revert();
-                return;
-            }
+            const adminUsername = auth.username;
+            const adminPassword = auth.password;
 
             selects.forEach(s => s.disabled = true);
 
@@ -3695,7 +3747,9 @@ function showAlreadyPresent(studentId, name) {
     `;
 
     const modal = document.getElementById('already-present-modal');
-
+    if (document.getElementById('admin-auth-modal').classList.contains('show')) {
+        return;
+    }
     modal.classList.add('show');
     alreadyPresentPopupVisible = true;
 
