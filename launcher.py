@@ -139,7 +139,7 @@ def main():
         width=1280,
         height=800,
         min_size=(1000, 700),
-        fullscreen=True,
+        maximized=True,
         resizable=True
     )
 
