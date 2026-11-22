@@ -9,7 +9,6 @@
 ![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 ![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy&logoColor=white)
-[![CI Test Suite](https://github.com/Shafyydev/face-recognition-attendance-system/actions/workflows/tests.yml/badge.svg)](https://github.com/Shafyydev/face-recognition-attendance-system/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
