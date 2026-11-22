@@ -677,6 +677,18 @@
                         0 0 26px rgba(59, 130, 246, 0.22),
                         inset 0 1px 0 rgba(96, 165, 250, 0.25);
         }
+        .cam-recognition-banner.absent {
+            border-color: rgba(239, 68, 68, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8),
+                        0 0 26px rgba(239, 68, 68, 0.22),
+                        inset 0 1px 0 rgba(248, 113, 113, 0.25);
+        }
+        .cam-recognition-banner.no-attendance {
+            border-color: rgba(148, 163, 184, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8),
+                        0 0 26px rgba(148, 163, 184, 0.22),
+                        inset 0 1px 0 rgba(203, 213, 225, 0.25);
+        }
 
         /* Avatar Icon */
         .cam-hud-avatar {
@@ -705,6 +717,16 @@
             background: rgba(59, 130, 246, 0.15);
             border-color: rgba(59, 130, 246, 0.4);
             color: #60a5fa;
+        }
+        .cam-recognition-banner.absent .cam-hud-avatar {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+        .cam-recognition-banner.no-attendance .cam-hud-avatar {
+            background: rgba(148, 163, 184, 0.15);
+            border-color: rgba(148, 163, 184, 0.4);
+            color: #cbd5e1;
         }
 
         /* Content (Name & Meta Info) */
@@ -798,6 +820,11 @@
             background: rgba(59, 130, 246, 0.16);
             border: 1px solid rgba(96, 165, 250, 0.45);
             color: #60a5fa;
+        }
+        .cam-recognition-banner.absent .cam-hud-status {
+            background: rgba(239, 68, 68, 0.16);
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            color: #f87171;
         }
         .cam-recognition-banner.no-attendance .cam-hud-status {
             background: rgba(148, 163, 184, 0.16);
@@ -3207,6 +3234,8 @@
                         name: data.name,
                         student_id: studentId,
                         status: finalStatus,
+                        department: currentItem ? currentItem.department : undefined,
+                        year: currentItem ? currentItem.year : undefined,
                         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
                     });
                     toast('Updated ✓', `${data.name} marked as ${finalStatus} on ${date}`, false);
@@ -3526,10 +3555,11 @@
             const badgeIconEl = document.getElementById('cam-badge-icon');
             const avatarIconEl = document.getElementById('cam-banner-icon');
 
+            const isAbsent = data.status === 'absent';
             const isLate = data.status === 'late';
             const isAlready = data.status === 'already' || data.status === 'already_present';
             const isNoAttendance = data.status === 'no_attendance' || data.status === 'sunday';
-            const statusType = isLate ? 'late' : (isAlready ? 'already' : (isNoAttendance ? 'no-attendance' : 'ontime'));
+            const statusType = isAbsent ? 'absent' : (isLate ? 'late' : (isAlready ? 'already' : (isNoAttendance ? 'no-attendance' : 'ontime')));
 
             banner.className = `cam-recognition-banner ${statusType}`;
 
@@ -3560,7 +3590,10 @@
             if (timeEl) timeEl.textContent = timeStr;
 
             if (badgeTextEl && badgeIconEl) {
-                if (isLate) {
+                if (isAbsent) {
+                    badgeTextEl.textContent = 'ABSENT';
+                    badgeIconEl.className = 'fas fa-times-circle';
+                } else if (isLate) {
                     badgeTextEl.textContent = 'LATE';
                     badgeIconEl.className = 'fas fa-clock';
                 } else if (isAlready) {
@@ -3576,7 +3609,7 @@
             }
 
             if (avatarIconEl) {
-                avatarIconEl.className = isLate ? 'fas fa-clock' : (isAlready ? 'fas fa-id-badge' : 'fas fa-check');
+                avatarIconEl.className = isAbsent ? 'fas fa-user-times' : (isLate ? 'fas fa-clock' : (isAlready ? 'fas fa-id-badge' : 'fas fa-check'));
             }
 
             const videoContainer = banner.closest('.video-container');
@@ -3595,6 +3628,7 @@
 
         function flashCheckin(item) {
             if (item.status === 'absent') {
+                showCameraBanner(item);
                 toast(
                     'Marked absent',
                     `${item.name} (${item.student_id})`,
