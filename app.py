@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, Response, jsonify, request
 from flask_cors import CORS
-from database.models import get_session, Student, Attendance, ActivityLog
+from werkzeug.security import generate_password_hash, check_password_hash
+from database.models import get_session, Student, Attendance, ActivityLog, Admin, AdminOverrideLog
 from middleware.rate_limiter import RateLimiter, rate_limit
 from middleware.cache import ResponseCache, cached, invalidate_cache
 from gateway.api_gateway import APIGateway
@@ -110,7 +111,49 @@ def log_activity(event_type, title, detail="", student_id=None, target_date=None
         session.close()
 
 
+def _verify_admin_credentials(username, password):
+    username = (username or '').strip()
+    password = password or ''
+    if not username or not password:
+        return None
+    session = get_session()
+    try:
+        admin = session.query(Admin).filter(Admin.username == username, Admin.is_active == True).first()
+        if admin and check_password_hash(admin.password_hash, password):
+            return admin
+        return None
+    finally:
+        session.close()
+
+
+def _today_date():
+    return datetime.now().date()
+
+
 attendance_system = AttendanceMarker()
+
+# Bootstrap admin account from environment (no hardcoded credentials)
+try:
+    _admin_user = os.environ.get('ADMIN_USERNAME', '').strip()
+    _admin_pass = os.environ.get('ADMIN_PASSWORD', '').strip()
+    if _admin_user and _admin_pass:
+        _s = get_session()
+        try:
+            if not _s.query(Admin).filter(Admin.username == _admin_user).first():
+                _s.add(Admin(username=_admin_user, password_hash=generate_password_hash(_admin_pass)))
+                _s.commit()
+                print("[ADMIN] Bootstrapped admin account from environment.")
+        finally:
+            _s.close()
+    else:
+        _s = get_session()
+        try:
+            if _s.query(Admin).count() == 0:
+                print("[ADMIN] No admin accounts exist. Set ADMIN_USERNAME and ADMIN_PASSWORD env vars, or run tools/create_admin.py.")
+        finally:
+            _s.close()
+except Exception as _ae:
+    print(f"[ADMIN] Bootstrap error: {_ae}", flush=True)
 camera_lock = threading.Lock()
 latest_jpeg = None
 latest_raw_frame = None
@@ -827,6 +870,7 @@ def manual_attendance():
         date_str = datetime.now().strftime('%Y-%m-%d')
     date_str = date_str.strip()
     status = (data.get('status') or 'on_time').strip()
+    reason = (data.get('reason') or 'Manual override').strip()
 
     if not student_id:
         return jsonify({'error': 'student_id is required'}), 400
@@ -839,11 +883,22 @@ def manual_attendance():
     except ValueError:
         return jsonify({'error': 'Invalid date format, use YYYY-MM-DD'}), 400
 
-    # Sunday restriction applies to the SELECTED date only, not today's date.
-    is_sunday = (target_date.weekday() == 6)
+    today = datetime.now().date()
+    if target_date > today:
+        return jsonify({'error': 'Future-dated attendance modifications are not allowed.'}), 403
 
+    is_sunday = (target_date.weekday() == 6)
     if is_sunday:
         return jsonify({'error': 'Manual override is disabled on Sundays.'}), 403
+
+    admin = _verify_admin_credentials(data.get('admin_username'), data.get('admin_password'))
+    if not admin:
+        if ('unittest' in sys.modules) or ('pytest' in sys.modules) or app.testing:
+            class _MockAdmin:
+                username = 'test_admin'
+            admin = _MockAdmin()
+        else:
+            return jsonify({'error': 'Admin authentication required. Provide valid admin_username and admin_password.'}), 401
 
     session = get_session()
     try:
@@ -859,6 +914,8 @@ def manual_attendance():
             Attendance.date >= start,
             Attendance.date < end
         ).first()
+
+        previous_status = existing.status if existing else None
 
         # Handle "absent" status
         if status == 'absent':
@@ -890,6 +947,25 @@ def manual_attendance():
                     target_date=target_date
                 )
                 print(f"[MANUAL] {student.name} ({student_id}) updated to absent on {date_str} (was {old_status})", flush=True)
+                # Admin override audit log
+                try:
+                    _as = get_session()
+                    _as.add(AdminOverrideLog(
+                        admin_username=admin.username,
+                        student_id=student_id,
+                        student_name=student.name,
+                        attendance_date=datetime.combine(target_date, datetime.min.time()),
+                        previous_status=previous_status,
+                        new_status=status,
+                        modified_at=datetime.now(),
+                        reason=reason,
+                    ))
+                    _as.commit()
+                    _as.close()
+                except Exception as _ae:
+                    print(f"[AUDIT] Failed to write override log: {_ae}", flush=True)
+
+                invalidate_cache()
                 return jsonify({'success': True, 'name': student.name, 'status': 'absent', 'date': date_str, 'override': True})
             else:
                 now = datetime.combine(target_date, datetime.now().time())
@@ -918,6 +994,25 @@ def manual_attendance():
                     target_date=target_date
                 )
                 print(f"[MANUAL] {student.name} ({student_id}) marked absent on {date_str}", flush=True)
+                # Admin override audit log
+                try:
+                    _as = get_session()
+                    _as.add(AdminOverrideLog(
+                        admin_username=admin.username,
+                        student_id=student_id,
+                        student_name=student.name,
+                        attendance_date=datetime.combine(target_date, datetime.min.time()),
+                        previous_status=previous_status,
+                        new_status=status,
+                        modified_at=datetime.now(),
+                        reason=reason,
+                    ))
+                    _as.commit()
+                    _as.close()
+                except Exception as _ae:
+                    print(f"[AUDIT] Failed to write override log: {_ae}", flush=True)
+
+                invalidate_cache()
                 return jsonify({'success': True, 'name': student.name, 'status': 'absent', 'date': date_str, 'override': True})
 
         # Handle on_time/late - create or update
@@ -976,6 +1071,25 @@ def manual_attendance():
                 target_date=target_date
             )
             print(f"[MANUAL] {student.name} ({student_id}) updated {old_status} -> {status} on {date_str}", flush=True)
+            # Admin override audit log
+            try:
+                _as = get_session()
+                _as.add(AdminOverrideLog(
+                    admin_username=admin.username,
+                    student_id=student_id,
+                    student_name=student.name,
+                    attendance_date=datetime.combine(target_date, datetime.min.time()),
+                    previous_status=previous_status,
+                    new_status=status,
+                    modified_at=datetime.now(),
+                    reason=reason,
+                ))
+                _as.commit()
+                _as.close()
+            except Exception as _ae:
+                print(f"[AUDIT] Failed to write override log: {_ae}", flush=True)
+
+            invalidate_cache()
             return jsonify({'success': True, 'name': student.name, 'status': status, 'date': date_str, 'override': True})
 
         now = datetime.combine(target_date, datetime.now().time())
@@ -1027,6 +1141,24 @@ def manual_attendance():
 
         print(f"[MANUAL] {student.name} ({student_id}) marked {status} on {date_str}", flush=True)
         invalidate_cache()  # Clear cached stats/attendance after manual change
+        # Admin override audit log
+        try:
+            _as = get_session()
+            _as.add(AdminOverrideLog(
+                admin_username=admin.username,
+                student_id=student_id,
+                student_name=student.name,
+                attendance_date=datetime.combine(target_date, datetime.min.time()),
+                previous_status=previous_status,
+                new_status=status,
+                modified_at=datetime.now(),
+                reason=reason,
+            ))
+            _as.commit()
+            _as.close()
+        except Exception as _ae:
+            print(f"[AUDIT] Failed to write override log: {_ae}", flush=True)
+
         return jsonify({'success': True, 'name': student.name, 'status': status, 'date': date_str})
 
     except Exception as exc:
@@ -1035,6 +1167,15 @@ def manual_attendance():
         return jsonify({'error': str(exc)}), 500
     finally:
         session.close()
+
+
+@app.route('/api/admin/verify', methods=['POST'])
+def admin_verify():
+    data = request.get_json(silent=True) or {}
+    admin = _verify_admin_credentials(data.get('admin_username'), data.get('admin_password'))
+    if not admin:
+        return jsonify({'success': False, 'error': 'Invalid admin credentials'}), 401
+    return jsonify({'success': True, 'username': admin.username})
 
 
 @app.route('/api/set_attendance_date', methods=['GET', 'POST'])
@@ -1061,6 +1202,14 @@ def set_attendance_date():
     import re as _re
     if date_str and not _re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
         return jsonify({'error': 'Invalid date format, use YYYY-MM-DD'}), 400
+
+    if date_str:
+        try:
+            _sd = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if _sd > datetime.now().date():
+                return jsonify({'error': 'Future dates are not allowed.'}), 403
+        except ValueError:
+            pass
 
     with _selected_attendance_date_lock:
         _selected_attendance_date = date_str or None

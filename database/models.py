@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, event
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, event, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 from datetime import datetime
@@ -47,6 +47,7 @@ class ActivityLog(Base):
     student_id = Column(String(20))
     created_at = Column(DateTime, default=datetime.now)
 
+
 class Attendance(Base):
     __tablename__ = "attendance"
 
@@ -57,6 +58,30 @@ class Attendance(Base):
     status = Column(String(20), default="present")
     session = Column(String(50))
     late_alert_sent = Column(Boolean, default=False)
+
+
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(50), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    is_active = Column(Boolean, default=True)
+
+
+class AdminOverrideLog(Base):
+    __tablename__ = "admin_override_log"
+
+    id = Column(Integer, primary_key=True)
+    admin_username = Column(String(50), nullable=False)
+    student_id = Column(String(20), nullable=False)
+    student_name = Column(String(100))
+    attendance_date = Column(DateTime, nullable=False)
+    previous_status = Column(String(20))
+    new_status = Column(String(20), nullable=False)
+    modified_at = Column(DateTime, default=datetime.now)
+    reason = Column(Text)
 
 
 def init_db():

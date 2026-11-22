@@ -3087,11 +3087,14 @@
                         if (isSunday) {
                             select.disabled = true;
                             select.title = "Manual override is disabled on Sundays";
-                        } else if (document.activeElement !== select && activeDropdownStudentId !== String(item.student_id)) {
+                        } else if (select.dataset.pending !== 'true') {
                             select.disabled = false;
                             const expectedVal = (item.status === 'present') ? 'on_time' : item.status;
-                            if (['on_time', 'late', 'absent'].includes(expectedVal) && select.value !== expectedVal) {
-                                select.value = expectedVal;
+                            if (['on_time', 'late', 'absent'].includes(expectedVal)) {
+                                if (document.activeElement !== select && activeDropdownStudentId !== String(item.student_id)) {
+                                    select.value = expectedVal;
+                                    select.setAttribute('data-original', expectedVal);
+                                }
                             }
                         }
                     }
@@ -3111,11 +3114,12 @@
                 const isNew = prevIds.size > 0 && !prevIds.has(String(item.student_id));
                 const st = getStatus(item.status);
                 const hasRecord = ['late', 'on_time', 'present', 'absent'].includes(item.status);
+                const expectedVal = (item.status === 'present') ? 'on_time' : item.status;
                 const actionCell = (hasRecord && !isSunday)
-                    ? `<select class="mark-dropdown" onchange="manualMark('${escapeHtml(item.student_id)}', this.value)" title="Override status">
-                            <option value="on_time" ${item.status === 'on_time' || item.status === 'present' ? 'selected' : ''}>On Time</option>
-                            <option value="late" ${item.status === 'late' ? 'selected' : ''}>Late</option>
-                            <option value="absent" ${item.status === 'absent' ? 'selected' : ''}>Absent</option>
+                    ? `<select class="mark-dropdown" data-original="${expectedVal}" onchange="manualMark('${escapeHtml(item.student_id)}', this.value, this)" title="Override status">
+                            <option value="on_time" ${expectedVal === 'on_time' ? 'selected' : ''}>On Time</option>
+                            <option value="late" ${expectedVal === 'late' ? 'selected' : ''}>Late</option>
+                            <option value="absent" ${expectedVal === 'absent' ? 'selected' : ''}>Absent</option>
                         </select>`
                     : `<span style="color:rgba(255,255,255,0.25);font-size:11px" title="${isSunday ? 'Manual override is disabled on Sundays' : 'No override available'}">&mdash;</span>`;
                 return `<tr data-id="${item.student_id}" class="${isNew ? 'new-row' : ''}">
@@ -3130,52 +3134,124 @@
             }).join('');
         }
 
-        async function manualMark(studentId, status) {
+        async function manualMark(studentId, newStatus, selectEl) {
             const date = dateFilter.value || new Date().toLocaleDateString('en-CA');
-            if (isDateSunday(date)) {
-                toast('Disabled', 'Manual override is disabled on Sundays', true);
+            const selects = document.querySelectorAll(`tr[data-id="${studentId}"] .mark-dropdown`);
+
+            // Find true current status of this student before user modification
+            const currentItem = allRows.find(r => String(r.student_id) === String(studentId));
+            let previousStatus = 'on_time';
+            if (currentItem) {
+                previousStatus = (currentItem.status === 'present') ? 'on_time' : currentItem.status;
+            } else if (selectEl && selectEl.getAttribute('data-original')) {
+                previousStatus = selectEl.getAttribute('data-original');
+            }
+
+            // Clean revert function to restore previous valid status on cancel/error
+            const revert = () => {
+                activeDropdownStudentId = null;
+                pendingTableRender = false;
+                selects.forEach(s => {
+                    s.disabled = false;
+                    s.dataset.pending = 'false';
+                    s.value = previousStatus;
+                    s.setAttribute('data-original', previousStatus);
+                    s.blur();
+                });
+            };
+
+            // If selected option is same as current status, no action needed
+            if (newStatus === previousStatus) {
+                revert();
                 return;
             }
-            const selects = document.querySelectorAll(`tr[data-id="${studentId}"] .mark-dropdown`);
+
+            if (isDateSunday(date)) {
+                toast('Disabled', 'Manual override is disabled on Sundays', true);
+                revert();
+                return;
+            }
+
+            // Flag as pending so background table refresh does not alter or conflict
+            selects.forEach(s => { s.dataset.pending = 'true'; });
+
+            const adminUsername = prompt('Admin ID:');
+            if (adminUsername === null) {
+                revert();
+                return;
+            }
+            const adminPassword = prompt('Admin Password:');
+            if (adminPassword === null) {
+                revert();
+                return;
+            }
+
             selects.forEach(s => s.disabled = true);
+
             try {
                 const res = await fetch('/api/attendance/manual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_id: studentId, date, status })
+                    body: JSON.stringify({
+                        student_id: studentId,
+                        date,
+                        status: newStatus,
+                        admin_username: adminUsername,
+                        admin_password: adminPassword
+                    })
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    const finalStatus = (data.status === 'present') ? 'on_time' : (data.status || newStatus);
                     showCameraBanner({
                         name: data.name,
                         student_id: studentId,
-                        status: status,
+                        status: finalStatus,
                         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
                     });
-                    toast('Updated ✓', `${data.name} marked as ${status} on ${date}`, false);
-                    // Refresh table & stats immediately
+                    toast('Updated ✓', `${data.name} marked as ${finalStatus} on ${date}`, false);
+
+                    if (currentItem) {
+                        currentItem.status = finalStatus;
+                    }
+
+                    activeDropdownStudentId = null;
+                    pendingTableRender = false;
+                    selects.forEach(s => {
+                        s.disabled = false;
+                        s.dataset.pending = 'false';
+                        s.value = finalStatus;
+                        s.setAttribute('data-original', finalStatus);
+                        s.blur();
+                    });
+
+                    // Refresh table & stats immediately from backend
                     const [attRes, statsRes] = await Promise.all([
-                        fetch('/api/attendance?date=' + date, { cache: 'no-store' }),
-                        fetch('/api/stats?date=' + date, { cache: 'no-store' })
+                        fetch('/api/attendance?date=' + encodeURIComponent(date), { cache: 'no-store' }),
+                        fetch('/api/stats?date=' + encodeURIComponent(date), { cache: 'no-store' })
                     ]);
-                    allRows = await attRes.json();
-                    absentRows = allRows.filter(r => r.status === 'absent');
-                    const stats = await statsRes.json();
+                    if (attRes.ok) {
+                        allRows = await attRes.json();
+                        absentRows = allRows.filter(r => r.status === 'absent');
+                    }
                     renderTable(true);
                     lastDeptKey = '';
                     renderDepts(allRows);
                     if (activeDept) updateDeptTable(activeDept);
-                    animateNumber(document.getElementById('present'), stats.present || 0);
-                    animateNumber(document.getElementById('late'), stats.late || 0);
-                    animateNumber(document.getElementById('absent'), stats.absent || 0);
-                    setRate(stats.percent || 0);
+                    if (statsRes.ok) {
+                        const stats = await statsRes.json();
+                        animateNumber(document.getElementById('present'), stats.present || 0);
+                        animateNumber(document.getElementById('late'), stats.late || 0);
+                        animateNumber(document.getElementById('absent'), stats.absent || 0);
+                        setRate(stats.percent || 0);
+                    }
                 } else {
                     toast('Error', data.error || 'Could not mark attendance', true);
-                    selects.forEach(s => s.disabled = false);
+                    revert();
                 }
             } catch(e) {
                 toast('Error', 'Network error', true);
-                selects.forEach(s => s.disabled = false);
+                revert();
             }
         }
 
