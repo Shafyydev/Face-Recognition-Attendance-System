@@ -832,6 +832,49 @@
             color: #cbd5e1;
         }
 
+        /* AM / PM Badges */
+        .time-ampm-badge {
+            display: inline-block;
+            padding: 1.5px 5.5px;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            margin-left: 5px;
+            vertical-align: middle;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .time-ampm-badge.am {
+            background: rgba(59, 130, 246, 0.16);
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            color: #60a5fa;
+        }
+        .time-ampm-badge.pm {
+            background: rgba(245, 158, 11, 0.16);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            color: #fbbf24;
+        }
+
+        .cam-ampm-badge {
+            display: inline-block;
+            font-weight: 700;
+            font-size: 9.5px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            letter-spacing: 0.4px;
+            margin-left: 3px;
+            vertical-align: baseline;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .cam-ampm-badge.am {
+            background: rgba(59, 130, 246, 0.22);
+            color: #93c5fd;
+        }
+        .cam-ampm-badge.pm {
+            background: rgba(245, 158, 11, 0.22);
+            color: #fde047;
+        }
+
 .table-wrap {
     max-height: 420px;
     overflow-x: auto;
@@ -2455,7 +2498,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Time</th>
+                                <th>Time (AM/PM)</th>
                                 <th>Dept</th>
                                 <th>Year</th>
                                 <th>Status</th>
@@ -2508,7 +2551,7 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Year</th>
-                                    <th>Time</th>
+                                    <th>Time (AM/PM)</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -3078,6 +3121,19 @@
             return rows.map(i => [i.student_id, i.name, i.time, i.department, i.year, i.status].join('|')).join('~');
         }
 
+        function formatTimeDisplay(timeStr) {
+            if (!timeStr || timeStr === '—' || timeStr === '&mdash;') return '&mdash;';
+            const str = String(timeStr).trim();
+            const parts = str.split(/\s+/);
+            if (parts.length >= 2) {
+                const digits = escapeHtml(parts[0]);
+                const period = parts[1].toUpperCase();
+                const cls = (period === 'AM' || period === 'PM') ? period.toLowerCase() : '';
+                return `${digits} <span class="time-ampm-badge ${cls}">${escapeHtml(period)}</span>`;
+            }
+            return escapeHtml(str);
+        }
+
         function renderTable(force) {
             const source = viewMode === 'absent'
                 ? allRows.filter(r => r.status === 'absent')
@@ -3114,9 +3170,10 @@
 
                     // Time cell (index 2)
                     const timeCell = tr.cells[2];
-                    const newTime = item.time || '—';
-                    if (timeCell && timeCell.textContent !== newTime) {
-                        timeCell.textContent = newTime;
+                    const newTime = item.time || '';
+                    if (timeCell && timeCell.dataset.rawTime !== newTime) {
+                        timeCell.dataset.rawTime = newTime;
+                        timeCell.innerHTML = formatTimeDisplay(newTime);
                     }
 
                     // Status tag badge (index 5)
@@ -3171,7 +3228,7 @@
                 return `<tr data-id="${item.student_id}" class="${isNew ? 'new-row' : ''}">
                     <td><span class="id-chip">${escapeHtml(item.student_id)}</span></td>
                     <td title="${escapeHtml(item.name || '')}">${escapeHtml(item.name || '')}</td>
-                    <td>${item.time || '&mdash;'}</td>
+                    <td data-raw-time="${escapeHtml(item.time || '')}">${formatTimeDisplay(item.time)}</td>
                     <td title="${escapeHtml(item.department || 'N/A')}">${escapeHtml(item.department || 'N/A')}</td>
                     <td>${escapeHtml(item.year || 'N/A')}</td>
                     <td><span class="status-tag ${st.cls}">${st.label}</span></td>
@@ -3482,7 +3539,7 @@
                     <td><span class="id-chip">${escapeHtml(item.student_id)}</span></td>
                     <td title="${escapeHtml(item.name || '')}">${escapeHtml(item.name || '')}</td>
                     <td>${escapeHtml(item.year || 'N/A')}</td>
-                    <td>${item.time || '&mdash;'}</td>
+                    <td data-raw-time="${escapeHtml(item.time || '')}">${formatTimeDisplay(item.time)}</td>
                     <td><span class="status-tag ${st.cls}">${st.label}</span></td>
                 </tr>`;
             }).join('');
@@ -3548,7 +3605,7 @@
                                 <i class="fas ${icon}" style="margin-right:6px;"></i>
                                 ${title}
                             </p>
-                            ${detail ? `<small>${detail} &middot; ${time}</small>` : `<small>${time}</small>`}
+                            ${detail ? `<small>${detail} &middot; ${formatTimeDisplay(time)}</small>` : `<small>${formatTimeDisplay(time)}</small>`}
                         </div>
                     </div>
                 `;
@@ -3639,7 +3696,15 @@
             }
 
             const timeStr = data.time || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            if (timeEl) timeEl.textContent = timeStr;
+            if (timeEl) {
+                const parts = timeStr.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    const period = parts[1].toUpperCase();
+                    timeEl.innerHTML = `${escapeHtml(parts[0])} <span class="cam-ampm-badge ${period.toLowerCase()}">${escapeHtml(period)}</span>`;
+                } else {
+                    timeEl.textContent = timeStr;
+                }
+            }
 
             if (badgeTextEl && badgeIconEl) {
                 if (isAbsent) {

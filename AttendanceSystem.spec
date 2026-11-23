@@ -26,9 +26,6 @@ a = Analysis(
         ('middleware', 'middleware'),
         ('gateway', 'gateway'),
 
-        # Required Haar cascade
-        ('data/models/haarcascade_frontalface_default.xml', 'data/models'),
-
         # OpenCV data
         (os.path.join(cv2_data_dir, 'data'), 'cv2/data'),
 
