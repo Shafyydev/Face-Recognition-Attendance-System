@@ -6,7 +6,7 @@ import os
 import sys
 def get_app_dir():
     if getattr(sys, 'frozen', False):
-        app_dir = os.path.dirname(sys.executable)
+        app_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'Attendance System')
     else:
         app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
