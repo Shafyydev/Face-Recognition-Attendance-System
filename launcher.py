@@ -23,7 +23,7 @@ if sys.stderr is not None and hasattr(sys.stderr, 'reconfigure'):
 
 if getattr(sys, 'frozen', False):
     sys.path.insert(0, sys._MEIPASS)
-    app_dir = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'Attendance System')
+    app_dir = os.path.dirname(sys.executable)
 else:
     app_dir = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, app_dir)
