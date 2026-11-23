@@ -1337,8 +1337,45 @@ def generate_registration_frames():
     """
     ensure_camera_thread()
 
-    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    cascade = cv2.CascadeClassifier(cascade_path)
+    # Resolve the Haar cascade XML robustly (works in dev and frozen exe).
+    # cv2.data.haarcascades is unreliable on headless OpenCV installs that
+    # ship no data files, so bundle the XML with the app instead.
+    def _resolve_cascade_path():
+        candidates = []
+        if getattr(sys, 'frozen', False):
+            exe_dir = os.path.dirname(sys.executable)
+            candidates.append(
+                os.path.join(exe_dir, "_internal", "data", "models",
+                             "haarcascade_frontalface_default.xml")
+            )
+            candidates.append(
+                os.path.join(exe_dir, "data", "models",
+                             "haarcascade_frontalface_default.xml")
+            )
+        else:
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            candidates.append(
+                os.path.join(project_root, "data", "models",
+                             "haarcascade_frontalface_default.xml")
+            )
+        # Last resort: OpenCV's bundled data location.
+        candidates.append(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+        for path in candidates:
+            if path and os.path.isfile(path):
+                return path
+        return None
+
+    cascade_path = _resolve_cascade_path()
+    if cascade_path is None:
+        print("WARNING: haarcascade_frontalface_default.xml not found; "
+              "registration face box will not appear.", flush=True)
+        cascade = None
+    else:
+        cascade = cv2.CascadeClassifier(cascade_path)
     last_box = None
     last_detection_time = 0.0
 
