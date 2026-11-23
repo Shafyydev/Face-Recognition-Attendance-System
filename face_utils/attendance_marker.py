@@ -480,6 +480,8 @@ class AttendanceMarker:
                 ):
                     matched_this_frame.add(student_id)
 
+                    label_suffix = ""
+
                     if is_sunday:
                         if student_id not in self.matched_today:
                             if student_id in self._pending_marks:
@@ -521,6 +523,7 @@ class AttendanceMarker:
                         db_status = self.matched_today[student_id]
                         if db_status == "camera_absent":
                             status = "absent"
+                            label_suffix = " (Already Absent)"
                             
                             # Announce absent result ONCE per student (do not repeat)
                             if student_id not in self._last_spoken_time:
@@ -532,15 +535,20 @@ class AttendanceMarker:
                                     pass
                         elif db_status in ("no_attendance", "sunday"):
                             status = "no_attendance"
+                            label_suffix = " (No Attendance)"
                         else:
                             status = "already_present"
+                            label_suffix = " (Already Present)"
 
-                    color = (0, 165, 255) if is_sunday else (0, 255, 0)
-
-                    label_text = (
-                        f"{name} (No Attendance Today)" if is_sunday else
-                        f"{name} ({distance:.2f})"
-                    )
+                    if is_sunday:
+                        color = (0, 165, 255)
+                        label_text = f"{name} (No Attendance Today)"
+                    elif label_suffix:
+                        color = (0, 255, 255)
+                        label_text = f"{name}{label_suffix}"
+                    else:
+                        color = (0, 255, 0)
+                        label_text = f"{name} ({distance:.2f})"
 
                     cv2.rectangle(
                         frame,
