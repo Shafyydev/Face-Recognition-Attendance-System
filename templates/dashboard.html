@@ -5208,6 +5208,15 @@ function printStudentsReport() {
 
 // ===== Luxury Splash Screen Controller =====
 (function() {
+    // Only show the splash screen on the first load of the dashboard per browser session.
+    // Navigating back from other pages (e.g. register) must NOT re-trigger it.
+    if (sessionStorage.getItem('splashShown') === '1') {
+        var splashEl = document.getElementById('app-splash-screen');
+        if (splashEl) { splashEl.style.display = 'none'; }
+        return;
+    }
+    sessionStorage.setItem('splashShown', '1');
+
     var splash = document.getElementById('app-splash-screen');
     if (!splash) return;
 

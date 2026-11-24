@@ -521,7 +521,11 @@ class AttendanceMarker:
                             status = "confirming"
                     else:
                         db_status = self.matched_today[student_id]
-                        if db_status == "camera_absent":
+                        if time.time() < self._hold_until:
+                            # Held (e.g. on registration page): do not speak
+                            # or change attendance status for any student.
+                            status = "confirming"
+                        elif db_status == "camera_absent":
                             status = "absent"
                             label_suffix = " (Already Absent)"
                             
