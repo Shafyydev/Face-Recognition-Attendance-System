@@ -2267,10 +2267,320 @@
     background: linear-gradient(180deg, #de1b4a, #a8022e);
     box-shadow: 0 2px 8px rgba(197, 3, 55, 0.35);
 }
+
+/* ===== Luxury Startup Splash Screen ===== */
+#app-splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background:
+        radial-gradient(ellipse 120% 80% at 50% 0%, rgba(197, 3, 55, 0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 70%),
+        radial-gradient(circle at 50% 50%, rgba(197, 3, 55, 0.06) 0%, transparent 50%),
+        #04060c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1), filter 1.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Film grain overlay for premium texture */
+#app-splash-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Vignette for depth */
+#app-splash-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.splash-backdrop {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(197, 3, 55, 0.12) 0%, transparent 60%);
+    animation: splash-breath 6s ease-in-out infinite;
+    z-index: 2;
+}
+
+.splash-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(197, 3, 55, 0.25) 0%, rgba(245, 158, 11, 0.08) 35%, transparent 70%);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    filter: blur(60px);
+    animation: splash-glow-pulse 8s ease-in-out infinite;
+    z-index: 2;
+}
+
+.splash-content {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.splash-badge {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 64px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(197, 3, 55, 0.12));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 0 60px rgba(197, 3, 55, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: splash-float 6s ease-in-out infinite;
+    overflow: hidden;
+}
+
+/* Metallic gradient border */
+.splash-badge::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 64px;
+    padding: 1px;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(197, 3, 55, 0.5) 50%,
+        rgba(245, 158, 11, 0.3) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.splash-icon {
+    width: 200px;
+    height: 200px;
+    border-radius: 48px;
+    object-fit: contain;
+    position: relative;
+    z-index: 3;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+.splash-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        45deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.08) 30%,
+        rgba(255, 255, 255, 0.25) 50%,
+        rgba(255, 255, 255, 0.08) 70%,
+        transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: splash-shimmer-sweep 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.splash-typography {
+    margin-top: 48px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.splash-title {
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: #ffffff;
+    font-size: 34px;
+    margin: 0;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: splash-title-fade 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.splash-hairline {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.6), transparent);
+    margin: 16px auto 0;
+    opacity: 0;
+    animation: splash-title-fade 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.splash-subtitle {
+    letter-spacing: 3px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 12px;
+    text-transform: uppercase;
+    font-weight: 400;
+    opacity: 0;
+    animation: splash-subtitle-fade 2.0s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.splash-progress-track {
+    margin-top: 28px;
+    width: 360px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+}
+
+.splash-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg,
+        rgba(197, 3, 55, 0.4),
+        #C50337 30%,
+        #f59e0b 70%,
+        rgba(245, 158, 11, 0.4));
+    box-shadow: 0 0 8px rgba(197, 3, 55, 0.5);
+    border-radius: 1px;
+    position: relative;
+    animation: splash-progress-fill 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; animation-play-state: paused;
+}
+
+.splash-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -2px;
+    bottom: -2px;
+    width: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+/* Sonar rings - very subtle, slow */
+.splash-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 280px;
+    height: 280px;
+    border: 1px solid rgba(197, 3, 55, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+    z-index: 1;
+    pointer-events: none;
+    animation: splash-ring-expand 6s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+.splash-ring:nth-child(2) {
+    animation-delay: 2s;
+}
+.splash-ring:nth-child(3) {
+    animation-delay: 4s;
+}
+
+/* Dismissed state */
+#app-splash-screen.splash-dismissed {
+    transform: scale(1.02);
+    filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes splash-breath {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.08); }
+}
+
+@keyframes splash-glow-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; }
+}
+
+@keyframes splash-float {
+    0%, 100% { transform: translateY(-6px); }
+    50% { transform: translateY(6px); }
+}
+
+@keyframes splash-shimmer-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes splash-ring-expand {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.15;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.2);
+        opacity: 0;
+    }
+}
+
+@keyframes splash-title-fade {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes splash-subtitle-fade {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes splash-progress-fill {
+    from { width: 0%; }
+    to { width: 100%; }
+}
 </style>
 
 </head>
 <body>
+    <!-- Luxury Startup Splash Screen -->
+    <div id="app-splash-screen">
+        <div class="splash-ring"></div>
+        <div class="splash-ring"></div>
+        <div class="splash-ring"></div>
+        <div class="splash-backdrop"></div>
+        <div class="splash-glow"></div>
+        <div class="splash-content">
+            <div class="splash-badge">
+                <div class="splash-shimmer"></div>
+                <img src="/static/app_icon.png" alt="App Icon" class="splash-icon"/>
+            </div>
+            <div class="splash-typography">
+                <h1 class="splash-title">ST. JOSEPH'S COLLEGE</h1>
+                <div class="splash-hairline"></div>
+                <div class="splash-subtitle">FACE RECOGNITION ATTENDANCE SYSTEM</div>
+            </div>
+            <div class="splash-progress-track">
+                <div class="splash-progress-fill" id="splash-progress"></div>
+            </div>
+        </div>
+    </div>
+
     <canvas id="bg-canvas"></canvas>
     <div class="orb orb-a"></div>
     <div class="orb orb-b"></div>
@@ -4877,6 +5187,61 @@ function printStudentsReport() {
         printRoot.remove();
     }, 500);
 }
+
+// ===== Luxury Splash Screen Controller =====
+(function() {
+    var splash = document.getElementById('app-splash-screen');
+    if (!splash) return;
+
+    var progressEl = document.getElementById('splash-progress');
+    var started = performance.now();
+    var apiResolved = false;
+    var loadReady = false;
+    var dismissed = false;
+
+    function elapsed() { return (performance.now() - started) / 1000; }
+
+    // Start progress bar animation when page is actually visible.
+    // This prevents the animation from completing during hidden page load.
+    setTimeout(function() {
+        if (progressEl) {
+            progressEl.style.animationPlayState = 'running';
+        }
+    }, 50);
+
+    function dismiss() {
+        if (dismissed) return;
+        dismissed = true;
+        splash.classList.add('splash-dismissed');
+        setTimeout(function() { splash.style.display = 'none'; }, 600);
+    }
+
+    function maybeDismiss() {
+        var e = elapsed();
+        if (apiResolved && loadReady && e >= 2.0) {
+            dismiss();
+        }
+    }
+
+    window.addEventListener('load', function() {
+        loadReady = true;
+        maybeDismiss();
+    });
+
+    try {
+        fetch('/api/stats')
+            .then(function() { apiResolved = true; maybeDismiss(); })
+            .catch(function() { apiResolved = true; maybeDismiss(); });
+    } catch (e) {
+        apiResolved = true;
+        maybeDismiss();
+    }
+
+    // Failsafe timeout
+    setTimeout(function() {
+        if (!dismissed) dismiss();
+    }, 3500);
+})();
 
 </script>
 </body>
